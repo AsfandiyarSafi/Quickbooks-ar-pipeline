@@ -1,73 +1,84 @@
-# Accounts receivable (QuickBooks → Supabase → Streamlit)
+# QuickBooks → Supabase AR Pipeline
 
-Small pipeline that syncs **QuickBooks** invoices and payments into **Supabase**, and a **Streamlit** dashboard for AR metrics.
+A small Python pipeline that syncs **QuickBooks Online** invoices and payments into **Supabase**, plus a **Streamlit** dashboard for accounts-receivable metrics and charts.
 
-## Layout
+## Overview
 
-| Path | Purpose |
-|------|---------|
-| `src/payments_ar/config.py` | Loads `.env` from the project root; **no secrets in code**. |
-| `pipelines/sync_quickbooks_to_supabase.py` | ETL: QuickBooks API → Supabase `invoices` / `payments`. |
-| `scripts/quickbooks_oauth_authorization_code.py` | Optional one-time OAuth: authorization code → tokens (save refresh token for sync). |
-| `app/dashboard.py` | Streamlit AR dashboard (reads Supabase only). |
+| Component | Role |
+|-----------|------|
+| **Sync** | Fetches invoice and payment data from the QuickBooks API and upserts into Supabase tables (`invoices`, `payments`). |
+| **Dashboard** | Read-only Streamlit app that queries Supabase for KPIs, portfolio totals, and per-invoice views. |
+| **Config** | Secrets and endpoints load from a root `.env` file; nothing sensitive is hard-coded. |
 
-## Setup
+**Prerequisites:** Python **3.11+**, Supabase project with matching tables, and (for sync) QuickBooks API credentials. See [Environment variables](#environment-variables).
 
-1. Create a virtual environment and install the project in editable mode:
+## Quick start
+
+1. **Clone** the repository and enter the project root.
+
+2. **Create a virtual environment** and install the package in editable mode:
 
    ```bash
-   cd /path/to/Payments
    python3 -m venv venv
-   source venv/bin/activate   # Windows: venv\Scripts\activate
+   source venv/bin/activate          # Windows: venv\Scripts\activate
    pip install -e .
    ```
 
-2. **Secrets:** copy `.env.example` to `.env` and fill in values. Never commit `.env` (it is listed in `.gitignore`).
+3. **Configure secrets:** copy `.env.example` to `.env` and fill in values. Do not commit `.env` (it is gitignored).
 
-3. **Rotate credentials** that were previously pasted into old scripts or chat logs, then put only the new values in `.env`.
+4. **Verify** (optional but recommended):
 
-## Commands
+   ```bash
+   python scripts/verify_setup.py
+   ```
 
-- **Sync QuickBooks → Supabase**
+   This checks required files, imports, and that expected `.env` keys are present and non-empty (values are never printed).
 
-  ```bash
-  python pipelines/sync_quickbooks_to_supabase.py
-  ```
+## Usage
 
-- **Dashboard**
+Run these from the **project root** with the virtual environment activated.
 
-  ```bash
-  streamlit run app/dashboard.py
-  ```
+| Task | Command |
+|------|---------|
+| Sync QuickBooks → Supabase | `python pipelines/sync_quickbooks_to_supabase.py` |
+| AR dashboard | `streamlit run app/dashboard.py` |
+| OAuth token exchange (one-time; see below) | `python scripts/quickbooks_oauth_authorization_code.py` |
 
-- **One-time OAuth token exchange** (after setting `QUICKBOOKS_AUTH_CODE` and `QUICKBOOKS_REDIRECT_URI` in `.env`)
+**OAuth helper:** set `QUICKBOOKS_AUTH_CODE` and `QUICKBOOKS_REDIRECT_URI` in `.env` as described in `.env.example`, then run the OAuth script to obtain tokens. Store the refresh token securely for ongoing sync.
 
-  ```bash
-  python scripts/quickbooks_oauth_authorization_code.py
-  ```
+**Optional checks:** `bash scripts/run_checks.sh` runs syntax compilation and `verify_setup.py`. If `venv/bin/python` is missing, use `VENV_PYTHON=python3 bash scripts/run_checks.sh`.
 
 ## Environment variables
 
-See `.env.example` for the full list. Required for the sync pipeline: Supabase URL/key and QuickBooks client id/secret, refresh token, realm id. Set `QUICKBOOKS_ENV=production` when you leave the sandbox API.
+The canonical list and comments live in **`.env.example`**. Summary:
 
-## Verify before a demo
+| Area | Variables |
+|------|-----------|
+| Supabase (dashboard + sync target) | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
+| QuickBooks API (sync) | `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_REFRESH_TOKEN`, `QUICKBOOKS_REALM_ID` |
+| QuickBooks environment | `QUICKBOOKS_ENV` — `sandbox` or `production` |
 
-From the project root (with venv activated):
+Set `QUICKBOOKS_ENV=production` when using the production QuickBooks API (not the sandbox).
 
-```bash
-pip install -e .
-python scripts/verify_setup.py
-```
+**Minimum for dashboard only:** `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.  
+**Full sync:** all variables in the table above.
 
-`verify_setup.py` checks that required files exist and that **each variable in `.env` has a non-empty value** (it never prints secret values).
+## Project layout
 
-- **Dashboard only:** needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
-- **Full QuickBooks sync:** also needs `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_REFRESH_TOKEN`, and `QUICKBOOKS_REALM_ID`.
+| Path | Purpose |
+|------|---------|
+| `src/payments_ar/` | Package code; `config.py` loads `.env` from the project root. |
+| `pipelines/sync_quickbooks_to_supabase.py` | ETL: QuickBooks → Supabase. |
+| `app/dashboard.py` | Streamlit AR dashboard (Supabase only). |
+| `scripts/quickbooks_oauth_authorization_code.py` | Optional OAuth authorization-code flow. |
+| `scripts/verify_setup.py` | Local setup and `.env` checks. |
+| `scripts/run_checks.sh` | Compile + verify wrapper. |
 
-Optional one-liner (syntax + verify):
+## Security
 
-```bash
-bash scripts/run_checks.sh
-```
+- Rotate any credentials that were exposed in old scripts, logs, or chat history; use only current values in `.env`.
+- Share secrets through approved channels (password manager, vault, encrypted share)—not in the repo or public issues.
 
-Then run the sync and dashboard (needs network). If `verify_setup.py` fails, fix `.env` locally — credentials are never committed.
+## Demo and handoff
+
+For reviewers or stakeholders: provide the repository (or a zip excluding `.env`) and a short note on purpose—QuickBooks data → Supabase → Streamlit metrics and charts—and the [Usage](#usage) commands. For a live demo, run sync then the dashboard (network required); screenshots work for async review. If `verify_setup.py` fails, fix `.env` locally—credentials are never committed. Reviewers need their own `.env` (or provisioned read-only credentials), Python 3.11+, and network access to Intuit and Supabase.

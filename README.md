@@ -71,13 +71,3 @@ bash scripts/run_checks.sh
 ```
 
 Then run the sync and dashboard (needs network). If `verify_setup.py` fails, fix `.env` locally — credentials are never committed.
-
-## Handing off or demoing to a supervisor
-
-1. **Deliverable:** Share the **project folder** (zip) or a **private Git repo** — include `README.md`, `pyproject.toml`, `src/`, `pipelines/`, `app/`, `scripts/`, and `.env.example`. Do **not** commit `.env`; send secrets through a company-approved channel if needed (password manager, encrypted share, IT-approved vault).
-
-2. **One-page summary** (email or doc): what it does — QuickBooks sandbox → Supabase tables → Streamlit AR metrics and payments vs invoices chart — and how to run (`pip install -e .`, copy `.env`, two commands in **Commands** above).
-
-3. **Live demo (optional):** Screen-share: run `python pipelines/sync_quickbooks_to_supabase.py`, then `streamlit run app/dashboard.py`, show KPIs and charts. Capture **screenshots** if they prefer async review.
-
-4. **What they need:** Their own `.env` (or you provision read-only creds), Python 3.11+, and network access to Intuit and Supabase.

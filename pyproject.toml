@@ -1,0 +1,21 @@
+[project]
+name = "payments-ar"
+version = "0.1.0"
+description = "QuickBooks → Supabase sync and Streamlit AR dashboard"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "streamlit>=1.30",
+  "pandas>=2.0",
+  "plotly>=5.0",
+  "supabase>=2.0",
+  "requests>=2.28",
+  "python-dotenv>=1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
